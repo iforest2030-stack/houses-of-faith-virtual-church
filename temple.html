@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Houses of Faith — Closed Temple</title>
   <style>
     html, body { margin:0; height:100%; overflow:hidden; background:#000; }
@@ -30,103 +30,25 @@
       errBox.style.display = 'block';
       errBox.textContent = 'JS error:\\n' + (e.message || e.error || e);
     });
+    window.addEventListener('unhandledrejection', (e) => {
+      errBox.style.display = 'block';
+      errBox.textContent = 'Promise error:\\n' + (e.reason?.message || e.reason || e);
+    });
 
-    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
-    // ===== BASIC SETUP =====
+    // --- Scene
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x000000, 12, 60);
+    scene.fog = new THREE.Fog(0x000000, 10, 60);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 6, 18);
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+    camera.position.set(0, 7, 18);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.target.set(0, 4, 0);
-
-    // ===== LIGHTS =====
-    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-
-    const key = new THREE.DirectionalLight(0xffffff, 0.9);
-    key.position.set(8, 14, 10);
-    scene.add(key);
-
-    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-    fill.position.set(-10, 6, -8);
-    scene.add(fill);
-
-    // ===== MATERIALS =====
-    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8, roughness: 0.9, metalness: 0.0 });
-    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6b6762, roughness: 0.95, metalness: 0.0 });
-
-    // ===== FLOOR =====
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(22, 1, 22), darkStone);
-    floor.position.y = -0.5;
-    scene.add(floor);
-
-    // ===== ROOM (WALLS + ROOF) =====
-    // back wall
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 1), stone);
-    backWall.position.set(0, 4, -11);
-    scene.add(backWall);
-
-    // left wall
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 22), stone);
-    leftWall.position.set(-11, 4, 0);
-    scene.add(leftWall);
-
-    // right wall
-    const rightWall = leftWall.clone();
-    rightWall.position.set(11, 4, 0);
-    scene.add(rightWall);
-
-    // front wall (leave an "entrance" gap by making it lower)
-    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(22, 6, 1), stone);
-    frontWall.position.set(0, 2, 11);
-    scene.add(frontWall);
-
-    // roof
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(22, 1, 22), darkStone);
-    roof.position.set(0, 9.5, 0);
-    scene.add(roof);
-
-    // ===== COLUMNS =====
-    const columnGeo = new THREE.CylinderGeometry(0.6, 0.6, 8, 24);
-    const columnMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7 });
-
-    const colPositions = [
-      [-6, 4, -6], [ 6, 4, -6],
-      [-6, 4,  6], [ 6, 4,  6],
-      [-6, 4,  0], [ 6, 4,  0],
-    ];
-
-    for (const [x,y,z] of colPositions) {
-      const c = new THREE.Mesh(columnGeo, columnMat);
-      c.position.set(x, y, z);
-      scene.add(c);
-    }
-
-    // ===== RENDER LOOP (IMPORTANT) =====
-    function animate(){
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
-</body>
-</html>
+    const controls
