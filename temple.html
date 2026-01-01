@@ -4,17 +4,13 @@
   <meta charset="UTF-8" />
   <title>Houses of Faith — Closed Temple</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background:#000; }
+    html, body { margin:0; padding:0; overflow:hidden; background:#000; height:100%; }
     #hint{
-      position: fixed;
-      left: 0; right: 0; bottom: 18px;
-      text-align: center;
-      font-family: Georgia, serif;
-      color: rgba(255,255,255,0.75);
-      font-size: 14px;
-      pointer-events: none;
+      position:fixed; left:0; right:0; bottom:14px;
+      text-align:center; color:#fff; opacity:.75;
+      font-family: Georgia, serif; font-size:14px;
+      pointer-events:none;
     }
   </style>
 </head>
@@ -25,152 +21,101 @@
   <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    // Scene / Camera / Renderer
+    // --- Basic setup
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x000000, 12, 40);
+    scene.fog = new THREE.Fog(0x000000, 10, 45);
 
-    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
-    camera.position.set(0, 5, 16);
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.1, 200
+    );
+    camera.position.set(0, 6, 16);
 
-    const renderer = new THREE.WebGLRenderer({ antialias:true });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // Controls (works great on iPad)
+    // Controls (drag to look)
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 4, 0);
+    controls.target.set(0, 3, 0);
 
     // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
+    key.position.set(8, 12, 6);
+    scene.add(key);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    mainLight.position.set(6, 14, 8);
-    scene.add(mainLight);
+    // --- Materials
+    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8, roughness: 0.9, metalness: 0.0 });
+    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6b6762, roughness: 0.95, metalness: 0.0 });
 
-    const warm = new THREE.PointLight(0xffd6a0, 1.2, 40);
-    warm.position.set(0, 8, 0);
-    scene.add(warm);
-
-    // Materials
-    const stone = new THREE.MeshStandardMaterial({
-      color: 0xb9b3aa,
-      roughness: 0.9,
-      metalness: 0.0
-    });
-
-    const darkStone = new THREE.MeshStandardMaterial({
-      color: 0x2b2f35,
-      roughness: 0.95,
-      metalness: 0.0
-    });
-
-    // Temple size
-    const W = 18;   // width (x)
-    const H = 10;   // height (y)
-    const D = 26;   // depth (z)
+    // --- Temple dimensions
+    const W = 18;   // width
+    const D = 26;   // depth
+    const H = 9;    // height
+    const wallT = 0.6;
 
     // Floor
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, D), darkStone);
-    floor.position.y = -0.3;
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.4, D), darkStone);
+    floor.position.set(0, -0.2, 0);
     scene.add(floor);
 
-    // Ceiling
-    const ceiling = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, D), darkStone);
-    ceiling.position.y = H + 0.3;
-    scene.add(ceiling);
+    // Roof (ceiling)
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 0.4, D), darkStone);
+    roof.position.set(0, H, 0);
+    scene.add(roof);
 
-    // Walls (closed room)
-    const wallMat = stone;
-    const thickness = 0.6;
-
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, thickness), wallMat);
+    // Back wall
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, wallT), stone);
     backWall.position.set(0, H/2, -D/2);
     scene.add(backWall);
 
-    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, thickness), wallMat);
-    frontWall.position.set(0, H/2, D/2);
-    scene.add(frontWall);
-
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(thickness, H, D), wallMat);
+    // Left wall
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallT, H, D), stone);
     leftWall.position.set(-W/2, H/2, 0);
     scene.add(leftWall);
 
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(thickness, H, D), wallMat);
+    // Right wall
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallT, H, D), stone);
     rightWall.position.set(W/2, H/2, 0);
     scene.add(rightWall);
 
-    // Entrance opening (cut-out illusion: we add a frame instead of boolean cutting)
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x9b948b, roughness: 0.9 });
-    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.7, 0.9), frameMat);
-    frameTop.position.set(0, 7.4, D/2 - 0.1);
-    scene.add(frameTop);
+    // Front wall (with a "door" opening)
+    // We'll build it as two side pieces + top piece (so it has an entrance gap)
+    const doorW = 4.2;
+    const doorH = 6.2;
 
-    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.6, 0.9), frameMat);
-    frameLeft.position.set(-3.4, 4.1, D/2 - 0.1);
-    scene.add(frameLeft);
+    // front top piece
+    const frontTop = new THREE.Mesh(new THREE.BoxGeometry(W, H - doorH, wallT), stone);
+    frontTop.position.set(0, doorH + (H - doorH)/2, D/2);
+    scene.add(frontTop);
 
-    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.6, 0.9), frameMat);
-    frameRight.position.set(3.4, 4.1, D/2 - 0.1);
-    scene.add(frameRight);
+    // front left piece
+    const frontLeft = new THREE.Mesh(new THREE.BoxGeometry((W - doorW)/2, doorH, wallT), stone);
+    frontLeft.position.set(-(doorW/2 + (W - doorW)/4), doorH/2, D/2);
+    scene.add(frontLeft);
 
-    // Columns (two rows)
+    // front right piece
+    const frontRight = new THREE.Mesh(new THREE.BoxGeometry((W - doorW)/2, doorH, wallT), stone);
+    frontRight.position.set((doorW/2 + (W - doorW)/4), doorH/2, D/2);
+    scene.add(frontRight);
+
+    // --- Columns (inside)
+    const colR = 0.55;
+    const colH = 7.2;
+    const colGeo = new THREE.CylinderGeometry(colR, colR, colH, 24);
+    const capGeo = new THREE.CylinderGeometry(colR*1.2, colR*1.2, 0.35, 24);
+
     function addColumn(x, z){
-      const col = new THREE.Group();
+      const col = new THREE.Mesh(colGeo, stone);
+      col.position.set(x, colH/2, z);
 
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 7.2, 24), stone);
-      shaft.position.y = 3.6;
-      col.add(shaft);
+      const capTop = new THREE.Mesh(capGeo, stone);
+      capTop.position.set(x, colH + 0.2, z);
 
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.5, 24), stone);
-      base.position.y = 0.25;
-      col.add(base);
+      const capBot = new THREE.Mesh(capGeo, stone);
+      capBot.position.set(x, 0.2, z);
 
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.8, 0.6, 24), stone);
-      cap.position.y = 7.5;
-      col.add(cap);
-
-      col.position.set(x, 0, z);
-      scene.add(col);
-    }
-
-    const rowX = 5.2;
-    const zStart = -9.5;
-    const step = 5.0;
-    for(let i=0;i<4;i++){
-      const z = zStart + i*step;
-      addColumn(-rowX, z);
-      addColumn(rowX, z);
-    }
-
-    // Altar
-    const altar = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 2.5), frameMat);
-    altar.position.set(0, 0.6, -10.5);
-    scene.add(altar);
-
-    // Simple symbol on back wall (a glowing circle)
-    const ringGeo = new THREE.RingGeometry(1.2, 1.5, 48);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x88c6ff, transparent:true, opacity: 0.7, side: THREE.DoubleSide });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.position.set(0, 6.2, -D/2 + 0.35);
-    scene.add(ring);
-
-    // Animation loop
-    function animate(){
-      requestAnimationFrame(animate);
-      ring.rotation.z += 0.01;
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Resize
-    addEventListener('resize', () => {
-      camera.aspect = innerWidth/innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-    });
-  </script>
-</body>
-</html>
+      scene.add(col, capTop, capBot
