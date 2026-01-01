@@ -2,87 +2,175 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Houses of Faith – 3D Temple</title>
+  <title>Houses of Faith — Closed Temple</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: black;
-      font-family: Georgia, serif;
-    }
-    #hint {
+    html, body { margin: 0; height: 100%; overflow: hidden; background:#000; }
+    #hint{
       position: fixed;
-      bottom: 20px;
-      width: 100%;
+      left: 0; right: 0; bottom: 18px;
       text-align: center;
-      color: white;
-      opacity: 0.7;
+      font-family: Georgia, serif;
+      color: rgba(255,255,255,0.75);
       font-size: 14px;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
+  <div id="hint">Drag to look • Scroll to zoom</div>
 
-<div id="hint">Drag to look • Scroll to zoom</div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    // Scene / Camera / Renderer
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x000000, 12, 40);
 
-<script>
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x000000, 5, 20);
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+    camera.position.set(0, 5, 16);
 
-  const camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    100
-  );
-  camera.position.set(0, 2, 6);
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  document.body.appendChild(renderer.domElement);
+    // Controls (works great on iPad)
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 4, 0);
 
-  // Light
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambient);
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(5, 10, 5);
-  scene.add(light);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    mainLight.position.set(6, 14, 8);
+    scene.add(mainLight);
 
-  // Temple floor
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 20),
-    new THREE.MeshStandardMaterial({ color: 0x222222 })
-  );
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
+    const warm = new THREE.PointLight(0xffd6a0, 1.2, 40);
+    warm.position.set(0, 8, 0);
+    scene.add(warm);
 
-  // Sacred cube (placeholder)
-  const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1.5, 1),
-    new THREE.MeshStandardMaterial({ color: 0x8888ff })
-  );
-  cube.position.y = 0.75;
-  scene.add(cube);
+    // Materials
+    const stone = new THREE.MeshStandardMaterial({
+      color: 0xb9b3aa,
+      roughness: 0.9,
+      metalness: 0.0
+    });
 
-  function animate() {
-    cube.rotation.y += 0.003;
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-  animate();
+    const darkStone = new THREE.MeshStandardMaterial({
+      color: 0x2b2f35,
+      roughness: 0.95,
+      metalness: 0.0
+    });
 
-  window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
+    // Temple size
+    const W = 18;   // width (x)
+    const H = 10;   // height (y)
+    const D = 26;   // depth (z)
 
+    // Floor
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, D), darkStone);
+    floor.position.y = -0.3;
+    scene.add(floor);
+
+    // Ceiling
+    const ceiling = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, D), darkStone);
+    ceiling.position.y = H + 0.3;
+    scene.add(ceiling);
+
+    // Walls (closed room)
+    const wallMat = stone;
+    const thickness = 0.6;
+
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, thickness), wallMat);
+    backWall.position.set(0, H/2, -D/2);
+    scene.add(backWall);
+
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, thickness), wallMat);
+    frontWall.position.set(0, H/2, D/2);
+    scene.add(frontWall);
+
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(thickness, H, D), wallMat);
+    leftWall.position.set(-W/2, H/2, 0);
+    scene.add(leftWall);
+
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(thickness, H, D), wallMat);
+    rightWall.position.set(W/2, H/2, 0);
+    scene.add(rightWall);
+
+    // Entrance opening (cut-out illusion: we add a frame instead of boolean cutting)
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x9b948b, roughness: 0.9 });
+    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.7, 0.9), frameMat);
+    frameTop.position.set(0, 7.4, D/2 - 0.1);
+    scene.add(frameTop);
+
+    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.6, 0.9), frameMat);
+    frameLeft.position.set(-3.4, 4.1, D/2 - 0.1);
+    scene.add(frameLeft);
+
+    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.6, 0.9), frameMat);
+    frameRight.position.set(3.4, 4.1, D/2 - 0.1);
+    scene.add(frameRight);
+
+    // Columns (two rows)
+    function addColumn(x, z){
+      const col = new THREE.Group();
+
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 7.2, 24), stone);
+      shaft.position.y = 3.6;
+      col.add(shaft);
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.5, 24), stone);
+      base.position.y = 0.25;
+      col.add(base);
+
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.8, 0.6, 24), stone);
+      cap.position.y = 7.5;
+      col.add(cap);
+
+      col.position.set(x, 0, z);
+      scene.add(col);
+    }
+
+    const rowX = 5.2;
+    const zStart = -9.5;
+    const step = 5.0;
+    for(let i=0;i<4;i++){
+      const z = zStart + i*step;
+      addColumn(-rowX, z);
+      addColumn(rowX, z);
+    }
+
+    // Altar
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 2.5), frameMat);
+    altar.position.set(0, 0.6, -10.5);
+    scene.add(altar);
+
+    // Simple symbol on back wall (a glowing circle)
+    const ringGeo = new THREE.RingGeometry(1.2, 1.5, 48);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x88c6ff, transparent:true, opacity: 0.7, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.set(0, 6.2, -D/2 + 0.35);
+    scene.add(ring);
+
+    // Animation loop
+    function animate(){
+      requestAnimationFrame(animate);
+      ring.rotation.z += 0.01;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
 </body>
 </html>
