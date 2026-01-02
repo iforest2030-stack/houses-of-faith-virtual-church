@@ -2,125 +2,165 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Houses of Faith – Closed Temple</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Houses of Faith — Closed Temple</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #000;
-      height: 100%;
+    html, body { margin:0; padding:0; overflow:hidden; background:#000; height:100%; }
+    #hint{
+      position:fixed; left:0; right:0; bottom:14px;
+      text-align:center; color:#fff; opacity:.75;
+      font-family: Georgia, serif; font-size:14px; pointer-events:none;
     }
-    #hint {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 14px;
-      text-align: center;
-      color: #fff;
-      opacity: 0.75;
-      font-family: Georgia, serif;
-      font-size: 14px;
-      pointer-events: none;
+    #err{
+      position:fixed; top:10px; left:10px; right:10px;
+      color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
+      white-space:pre-wrap; background:rgba(0,0,0,.45);
+      padding:10px; border-radius:8px; display:none;
     }
   </style>
 </head>
-
 <body>
   <div id="hint">Drag to look • Scroll to zoom</div>
+  <div id="err"></div>
 
+  <!-- IMPORTANT: Use the NON-module (global THREE) builds for maximum compatibility -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    // Scene
+    // Show JS errors on screen (super useful on iPad)
+    (function(){
+      const box = document.getElementById('err');
+      function show(msg){
+        box.style.display = 'block';
+        box.textContent = String(msg);
+      }
+      window.addEventListener('error', (e) => show('JS error:\n' + (e.message || e.error || e)));
+      window.addEventListener('unhandledrejection', (e) => show('Promise error:\n' + (e.reason || e)));
+    })();
+
+    // --- Scene
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x000000, 10, 50);
+    scene.fog = new THREE.Fog(0x000000, 12, 70);
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      200
-    );
-    camera.position.set(0, 8, 18);
+    // --- Camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+    camera.position.set(0, 10, 26);
 
-    // Renderer
+    // --- Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // Controls
+    // --- Controls
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 4, 0);
+    controls.target.set(0, 7, 0);
 
-    // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-    const light = new THREE.DirectionalLight(0xffffff, 0.9);
-    light.position.set(10, 15, 10);
-    scene.add(light);
+    // --- Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-    // Materials
-    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8 });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
+    key.position.set(10, 18, 10);
+    scene.add(key);
 
-    // Floor
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    fill.position.set(-12, 10, -8);
+    scene.add(fill);
+
+    // --- Materials (stone look)
+    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8, roughness: 0.9, metalness: 0.0 });
+    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6b6762, roughness: 0.95, metalness: 0.0 });
+    const columnMat = new THREE.MeshStandardMaterial({ color: 0xa9a39a, roughness: 0.85, metalness: 0.0 });
+
+    // ===== FLOOR =====
     const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(22, 1, 22),
-      dark
+      new THREE.BoxGeometry(28, 1, 28),
+      darkStone
     );
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // Walls
+    // ===== ROOM (WALLS + ROOF) =====
+    const wallThickness = 1;
+    const wallHeight = 14;
+    const roomSize = 26; // inside feel
+
+    // Back wall
     const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(22, 10, 1),
+      new THREE.BoxGeometry(roomSize, wallHeight, wallThickness),
       stone
     );
-    backWall.position.set(0, 4, -11);
+    backWall.position.set(0, wallHeight/2 - 0.5, -roomSize/2);
     scene.add(backWall);
 
+    // Left wall
     const leftWall = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 10, 22),
+      new THREE.BoxGeometry(wallThickness, wallHeight, roomSize),
       stone
     );
-    leftWall.position.set(-11, 4, 0);
+    leftWall.position.set(-roomSize/2, wallHeight/2 - 0.5, 0);
     scene.add(leftWall);
 
+    // Right wall
     const rightWall = leftWall.clone();
-    rightWall.position.set(11, 4, 0);
+    rightWall.position.set(roomSize/2, wallHeight/2 - 0.5, 0);
     scene.add(rightWall);
+
+    // Front wall (leave an entrance opening by making it shorter)
+    const frontWall = new THREE.Mesh(
+      new THREE.BoxGeometry(roomSize, wallHeight * 0.55, wallThickness),
+      stone
+    );
+    frontWall.position.set(0, (wallHeight * 0.55)/2 - 0.5, roomSize/2);
+    scene.add(frontWall);
 
     // Roof
     const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(22, 1, 22),
+      new THREE.BoxGeometry(roomSize, 1, roomSize),
       stone
     );
-    roof.position.set(0, 9, 0);
+    roof.position.set(0, wallHeight - 0.5, 0);
     scene.add(roof);
 
-    // Columns
-    const colGeo = new THREE.CylinderGeometry(0.6, 0.6, 8, 32);
-    for (let x of [-6, 6]) {
-      for (let z of [-6, 6]) {
-        const col = new THREE.Mesh(colGeo, dark);
-        col.position.set(x, 4, z);
-        scene.add(col);
-      }
+    // ===== COLUMNS (inside, 8 columns) =====
+    const columnGeo = new THREE.CylinderGeometry(0.7, 0.7, 10, 28);
+    function addColumn(x, z) {
+      const c = new THREE.Mesh(columnGeo, columnMat);
+      c.position.set(x, 5, z);
+      scene.add(c);
+
+      // small base
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.6, 28), darkStone);
+      base.position.set(x, 0.3, z);
+      scene.add(base);
+
+      // small capital
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.6, 28), darkStone);
+      cap.position.set(x, 10.0, z);
+      scene.add(cap);
     }
 
-    // Resize
+    // 2 rows x 4 columns
+    const xs = [-8, -3, 3, 8];
+    const zs = [-6, 2];
+    xs.forEach(x => zs.forEach(z => addColumn(x, z)));
+
+    // ===== Simple altar block (optional focal point) =====
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 2), darkStone);
+    altar.position.set(0, 1, -9);
+    scene.add(altar);
+
+    // --- Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Animate
+    // --- Animate
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
