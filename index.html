@@ -1,53 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Houses of Faith</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Houses of Faith – Closed Temple</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: 'Georgia', serif;
-      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
-      color: #ffffff;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      height: 100%;
+    }
+    #hint {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 14px;
       text-align: center;
-    }
-    .temple {
-      max-width: 800px;
-      padding: 40px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      box-shadow: 0 0 40px rgba(255,255,255,0.15);
-    }
-    h1 {
-      font-size: 2.8em;
-      margin-bottom: 10px;
-    }
-    <h2>A Digital Temple for the Age of Technology</h2>
-    }
-    p {
-      margin-top: 25px;
-      font-size: 1.1em;
-      line-height: 1.6;
+      color: #fff;
+      opacity: 0.75;
+      font-family: Georgia, serif;
+      font-size: 14px;
+      pointer-events: none;
     }
   </style>
 </head>
-< <div class="temple">
-  <h1>Houses of Faith</h1>
-  <h2>A Digital Temple for the Age of Technology</h2>
 
-  <a href="#" class="enter-btn">Enter Houses of Faith</a>
+<body>
+  <div id="hint">Drag to look • Scroll to zoom</div>
 
-  <p>
-    This is a sacred digital space.<br>
-    A place for reflection, dialogue and spiritual presence.<br><br>
-    The light enters through technology.<br>
-    The soul remains human.
-  </p>
-</div> >
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // Scene
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x000000, 10, 50);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      200
+    );
+    camera.position.set(0, 8, 18);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 4, 0);
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const light = new THREE.DirectionalLight(0xffffff, 0.9);
+    light.position.set(10, 15, 10);
+    scene.add(light);
+
+    // Materials
+    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+    // Floor
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(22, 1, 22),
+      dark
+    );
+    floor.position.y = -0.5;
+    scene.add(floor);
+
+    // Walls
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(22, 10, 1),
+      stone
+    );
+    backWall.position.set(0, 4, -11);
+    scene.add(backWall);
+
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 10, 22),
+      stone
+    );
+    leftWall.position.set(-11, 4, 0);
+    scene.add(leftWall);
+
+    const rightWall = leftWall.clone();
+    rightWall.position.set(11, 4, 0);
+    scene.add(rightWall);
+
+    // Roof
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(22, 1, 22),
+      stone
+    );
+    roof.position.set(0, 9, 0);
+    scene.add(roof);
+
+    // Columns
+    const colGeo = new THREE.CylinderGeometry(0.6, 0.6, 8, 32);
+    for (let x of [-6, 6]) {
+      for (let z of [-6, 6]) {
+        const col = new THREE.Mesh(colGeo, dark);
+        col.position.set(x, 4, z);
+        scene.add(col);
+      }
+    }
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animate
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
 </body>
 </html>
