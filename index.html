@@ -5,131 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Houses of Faith — Virtual Temple</title>
   <style>
-    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
+    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; }
+    canvas { display:block; }
     #hint{
-      position:fixed; left:0; right:0; bottom:14px;
+      position:fixed; left:0; right:0; bottom:12px;
       text-align:center; color:#fff; opacity:.75;
-      font-family: Georgia, serif; font-size:14px; pointer-events:none;
-      z-index:10;
+      font-family:Georgia, serif; font-size:14px; pointer-events:none; z-index:10;
     }
     #err{
       position:fixed; top:10px; left:10px; right:10px;
       color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
-      white-space:pre-wrap; background:rgba(0,0,0,.45);
+      white-space:pre-wrap; background:rgba(0,0,0,.55);
       padding:10px; border-radius:8px; display:none; z-index:20;
     }
   </style>
 </head>
+
 <body>
   <div id="hint">Drag to look • Scroll / pinch to zoom</div>
   <div id="err"></div>
 
   <script type="module">
-    // ----- Error box (για iPad) -----
+    // ===== Error box (useful on iPad) =====
     const errBox = document.getElementById('err');
     const showErr = (msg) => { errBox.style.display = 'block'; errBox.textContent = msg; };
     window.addEventListener('error', (e) => showErr('JS error:\n' + (e.message || e.error || e)));
     window.addEventListener('unhandledrejection', (e) => showErr('Promise error:\n' + (e.reason?.message || e.reason || e)));
 
-    // ----- Import Three + OrbitControls (ΣΩΣΤΟ) -----
+    // ===== Three.js (module) + OrbitControls (module) =====
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
     import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-    // ----- Scene -----
+    // ===== Scene / Camera / Renderer =====
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.Fog(0x000000, 20, 120);
 
-    // ----- Camera -----
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      400
-    );
-    // Πάνω και λίγο μπροστά, για να ΜΗΝ "είσαι μέσα" σε τοίχο
-    camera.position.set(0, 14, 32);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
+    camera.position.set(0, 14, 28);
 
-    // ----- Renderer -----
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // ----- Controls -----
+    // ===== Controls =====
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.target.set(0, 7, 0);
+    controls.target.set(0, 6, 0);
     controls.minDistance = 8;
-    controls.maxDistance = 120;
-    controls.maxPolarAngle = Math.PI * 0.49; // να μην πάει κάτω από πάτωμα
+    controls.maxDistance = 90;
+    controls.maxPolarAngle = Math.PI * 0.49; // να μην περνάει κάτω από "πάτωμα"
 
-    // ----- Lights (πιο δυνατά για να μην είναι μαύρο) -----
+    // ===== Lights =====
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
     const key = new THREE.DirectionalLight(0xffffff, 1.0);
-    key.position.set(20, 40, 20);
+    key.position.set(10, 18, 12);
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xffffff, 0.45);
-    fill.position.set(-20, 20, -10);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    fill.position.set(-12, 10, -10);
     scene.add(fill);
 
-    const rim = new THREE.PointLight(0xffffff, 0.35, 300);
-    rim.position.set(0, 25, -40);
-    scene.add(rim);
+    // ===== Materials =====
+    const stone     = new THREE.MeshStandardMaterial({ color: 0xb9b9b9, roughness: 0.9, metalness: 0.0 });
+    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6f6f6f, roughness: 0.95, metalness: 0.0 });
+    const floorMat  = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0, metalness: 0.0 });
 
-    // ----- Materials -----
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.9, metalness: 0.0 });
-    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x5f5f5f, roughness: 0.95, metalness: 0.0 });
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0, metalness: 0.0 });
-
-    // ----- FLOOR -----
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(40, 1, 40),
-      floorMat
-    );
+    // ===== Floor =====
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(40, 1, 40), floorMat);
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // ----- TEMPLE ROOM (Walls + Roof) -----
-    const W = 26;   // πλάτος (x)
-    const D = 26;   // βάθος (z)
-    const H = 12;   // ύψος (y)
+    // ===== Temple dimensions =====
+    const W = 24;   // πλάτος (x)
+    const D = 24;   // βάθος (z)
+    const H = 11;   // ύψος τοίχων
     const T = 1.2;  // πάχος τοίχων
 
-    // Back wall
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stoneMat);
+    // ===== Walls (κλειστός ναός) =====
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
     backWall.position.set(0, H/2, -D/2);
     scene.add(backWall);
 
-    // Left wall
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stoneMat);
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stone);
     leftWall.position.set(-W/2, H/2, 0);
     scene.add(leftWall);
 
-    // Right wall
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stoneMat);
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stone);
     rightWall.position.set(W/2, H/2, 0);
     scene.add(rightWall);
 
-    // Front wall (κλειστός – χωρίς άνοιγμα)
-    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stoneMat);
+    // Μπροστά τοίχος (κλειστός)
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
     frontWall.position.set(0, H/2, D/2);
     scene.add(frontWall);
 
-    // Roof
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 1, D), darkStoneMat);
-    roof.position.set(0, H + 0.5, 0);
+    // ===== Roof =====
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 1.6, 1.2, D + 1.6), darkStone);
+    roof.position.set(0, H + 0.6, 0);
     scene.add(roof);
 
-    // ----- COLUMNS (8 κολόνες: 2 σειρές x 4) -----
-    const colGeo = new THREE.CylinderGeometry(0.75, 0.85, 10, 28);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.85 });
+    // ===== Steps =====
+    const step1 = new THREE.Mesh(new THREE.BoxGeometry(W + 6, 0.6, D + 6), new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 1.0 }));
+    step1.position.y = -0.2;
+    scene.add(step1);
 
-    const colY = 5; // γιατί ύψος 10
+    const step2 = new THREE.Mesh(new THREE.BoxGeometry(W + 3.5, 0.6, D + 3.5), new THREE.MeshStandardMaterial({ color: 0x242424, roughness: 1.0 }));
+    step2.position.y = 0.35;
+    scene.add(step2);
+
+    // ===== Columns (8 κολώνες: 2 σειρές x 4) =====
+    const colGeo = new THREE.CylinderGeometry(0.75, 0.85, 10, 28);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.9 });
+
+    const colY = 5; // επειδή ύψος κολώνας ~10
     const xPositions = [-8.5, -3.0, 3.0, 8.5];
     const zPositions = [-7.0, 7.0];
 
@@ -141,20 +133,20 @@
       }
     }
 
-    // ----- Small steps (προαιρετικό) -----
-    const step1 = new THREE.Mesh(new THREE.BoxGeometry(30, 0.6, 30), new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 1 }));
-    step1.position.y = -1.1;
-    scene.add(step1);
+    // ===== Small inner block (ένα “ιερό” στο κέντρο) =====
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 3), new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.9 }));
+    altar.position.set(0, 0.6, -4);
+    scene.add(altar);
 
-    // ----- Resize -----
+    // ===== Resize =====
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // ----- Animate -----
-    function animate(){
+    // ===== Animate =====
+    function animate() {
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
