@@ -1,158 +1,203 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Houses of Faith — Closed Temple</title>
   <style>
-    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; }
-    #hint {
-      position: fixed; left:0; right:0; bottom:14px;
+    html, body { margin:0; padding:0; overflow:hidden; background:#000; height:100%; }
+    #hint{
+      position:fixed; left:0; right:0; bottom:14px;
       text-align:center; color:#fff; opacity:.75;
-      font-family: Georgia, serif; font-size:14px; pointer-events:none;
+      font-family: Georgia, serif; font-size:14px;
+      pointer-events:none;
     }
-    #err {
-      position: fixed; top:10px; left:10px; right:10px;
+    #err{
+      position:fixed; top:10px; left:10px; right:10px;
       color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
-      white-space: pre-wrap; background: rgba(0,0,0,.55);
+      white-space:pre-wrap; background:rgba(0,0,0,.45);
       padding:10px; border-radius:8px; display:none;
+      z-index:10;
     }
   </style>
 </head>
 <body>
-  <div id="hint">Drag to look • Scroll to zoom</div>
+  <div id="hint">Drag to look • Scroll / pinch to zoom</div>
   <div id="err"></div>
 
-  <script type="module">
-    // ----- Error overlay (για iPad) -----
-    const errBox = document.getElementById('err');
-    window.addEventListener('error', (e) => {
-      errBox.style.display = 'block';
-      errBox.textContent = 'JS error:\\n' + (e.message || e.error || e);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      errBox.style.display = 'block';
-      errBox.textContent = 'Promise error:\\n' + (e.reason || e);
-    });
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
-    // ----- THREE via ES Modules (ΣΗΜΑΝΤΙΚΟ) -----
-    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  <script>
+    // ---- Error overlay (helps on iPad)
+    (function(){
+      const box = document.getElementById('err');
+      window.addEventListener('error', (e) => {
+        box.style.display = 'block';
+        box.textContent = 'JS error:\\n' + (e.message || e.error || e);
+      });
+    })();
 
-    // ----- Scene -----
+    // ---- Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.Fog(0x000000, 12, 70);
-
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
-    camera.position.set(0, 10, 26);
+    scene.fog = new THREE.Fog(0x000000, 12, 60);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // ----- Controls -----
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.target.set(0, 7, 0);
+    // ---- Camera (we control it manually)
+    const target = new THREE.Vector3(0, 4, 0);
+    let radius = 18;          // zoom
+    let theta = 0.6;          // left-right
+    let phi   = 1.1;          // up-down (0..PI)
 
-    // ----- Lights -----
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.1, 200
+    );
+
+    function updateCamera(){
+      // clamp phi to avoid flipping
+      const eps = 0.01;
+      phi = Math.max(eps, Math.min(Math.PI - eps, phi));
+
+      const x = radius * Math.sin(phi) * Math.cos(theta);
+      const z = radius * Math.sin(phi) * Math.sin(theta);
+      const y = radius * Math.cos(phi);
+
+      camera.position.set(x, y + target.y, z);
+      camera.lookAt(target);
+    }
+    updateCamera();
+
+    // ---- Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-    const key = new THREE.DirectionalLight(0xffffff, 0.95);
-    key.position.set(10, 18, 8);
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
+    key.position.set(8, 14, 10);
     scene.add(key);
 
     const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-    fill.position.set(-12, 10, -10);
+    fill.position.set(-10, 6, -8);
     scene.add(fill);
 
-    // ----- Materials -----
-    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b2a8, roughness: 0.9, metalness: 0.0 });
+    // ---- Materials
+    const stone     = new THREE.MeshStandardMaterial({ color: 0xb9b2a8, roughness: 0.9, metalness: 0.0 });
     const darkStone = new THREE.MeshStandardMaterial({ color: 0x6b6762, roughness: 0.95, metalness: 0.0 });
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 });
+    const wallMat   = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95, metalness: 0.0 });
 
-    // ----- FLOOR -----
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(26, 1, 26),
-      darkStone
-    );
+    // ---- Floor
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(22, 1, 22), darkStone);
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // ----- ROOM (WALLS + ROOF)  ΚΛΕΙΣΤΟΣ ΝΑΟΣ -----
-    // Διαστάσεις "δωματίου"
-    const roomW = 24;  // πλάτος (x)
-    const roomH = 12;  // ύψος (y)
-    const roomD = 24;  // βάθος (z)
-    const thick = 1;   // πάχος τοίχου
-
-    // Πίσω τοίχος
-    const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(roomW, roomH, thick),
-      wallMat
-    );
-    backWall.position.set(0, roomH/2 - 0.5, -roomD/2);
+    // ---- Closed Temple Room (walls + roof)
+    // Back wall
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 1), wallMat);
+    backWall.position.set(0, 4, -11);
     scene.add(backWall);
 
-    // Μπροστά τοίχος
-    const frontWall = new THREE.Mesh(
-      new THREE.BoxGeometry(roomW, roomH, thick),
-      wallMat
-    );
-    frontWall.position.set(0, roomH/2 - 0.5, roomD/2);
-    scene.add(frontWall);
-
-    // Αριστερός τοίχος
-    const leftWall = new THREE.Mesh(
-      new THREE.BoxGeometry(thick, roomH, roomD),
-      wallMat
-    );
-    leftWall.position.set(-roomW/2, roomH/2 - 0.5, 0);
+    // Left wall
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 22), wallMat);
+    leftWall.position.set(-11, 4, 0);
     scene.add(leftWall);
 
-    // Δεξιός τοίχος
+    // Right wall
     const rightWall = leftWall.clone();
-    rightWall.position.set(roomW/2, roomH/2 - 0.5, 0);
+    rightWall.position.set(11, 4, 0);
     scene.add(rightWall);
 
-    // Οροφή
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(roomW + 2, thick, roomD + 2),
-      wallMat
-    );
-    roof.position.set(0, roomH - 0.5, 0);
+    // Front wall (leave a “door” feeling by making it lower in the middle)
+    // We do it as two blocks left/right + a top beam
+    const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(9, 10, 1), wallMat);
+    frontLeft.position.set(-6.5, 4, 11);
+    scene.add(frontLeft);
+
+    const frontRight = frontLeft.clone();
+    frontRight.position.set(6.5, 4, 11);
+    scene.add(frontRight);
+
+    const frontTop = new THREE.Mesh(new THREE.BoxGeometry(22, 4, 1), wallMat);
+    frontTop.position.set(0, 8, 11);
+    scene.add(frontTop);
+
+    // Roof
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(22, 1, 22), wallMat);
+    roof.position.set(0, 9, 0);
     scene.add(roof);
 
-    // ----- COLUMNS (κολόνες) -----
-    const colGeo = new THREE.CylinderGeometry(0.7, 0.7, 10, 32);
-    const colMat = stone;
+    // ---- Columns (inside)
+    const columnGeo = new THREE.CylinderGeometry(0.6, 0.6, 8, 28);
+    const columnMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.0 });
 
-    // 8 κολόνες (4 μπροστά + 4 πίσω)
-    const colY = 5; // μέση στο ύψος
-    const colX = [-8, -3, 3, 8];
-    const colZ = [-8, 8];
+    const colPositions = [
+      [-6, 4, -6], [ 6, 4, -6],
+      [-6, 4,  6], [ 6, 4,  6],
+      [-6, 4,  0], [ 6, 4,  0],
+    ];
+    colPositions.forEach(([x,y,z]) => {
+      const c = new THREE.Mesh(columnGeo, columnMat);
+      c.position.set(x, y, z);
+      scene.add(c);
+    });
 
-    for (const z of colZ) {
-      for (const x of colX) {
-        const col = new THREE.Mesh(colGeo, colMat);
-        col.position.set(x, colY, z);
-        scene.add(col);
-      }
+    // ---- Simple Controls (drag rotate + wheel/pinch zoom)
+    let isDown = false;
+    let lastX = 0, lastY = 0;
+
+    function onDown(x,y){ isDown = true; lastX=x; lastY=y; }
+    function onMove(x,y){
+      if(!isDown) return;
+      const dx = (x - lastX) / Math.max(300, window.innerWidth);
+      const dy = (y - lastY) / Math.max(300, window.innerHeight);
+      lastX = x; lastY = y;
+
+      theta -= dx * 4.0;
+      phi   -= dy * 3.0;
+      updateCamera();
     }
+    function onUp(){ isDown = false; }
 
-    // ----- Resize -----
+    renderer.domElement.addEventListener('mousedown', (e)=>onDown(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e)=>onMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onUp);
+
+    // Touch (iPad)
+    renderer.domElement.addEventListener('touchstart', (e)=>{
+      if(e.touches.length === 1){
+        const t = e.touches[0];
+        onDown(t.clientX, t.clientY);
+      }
+    }, { passive:true });
+
+    renderer.domElement.addEventListener('touchmove', (e)=>{
+      if(e.touches.length === 1){
+        const t = e.touches[0];
+        onMove(t.clientX, t.clientY);
+      }
+    }, { passive:true });
+
+    renderer.domElement.addEventListener('touchend', onUp, { passive:true });
+
+    // Zoom (wheel)
+    window.addEventListener('wheel', (e)=>{
+      radius += Math.sign(e.deltaY) * 1.2;
+      radius = Math.max(6, Math.min(60, radius));
+      updateCamera();
+    }, { passive:true });
+
+    // ---- Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // ----- Animate -----
-    function animate() {
+    // ---- Animate
+    function animate(){
       requestAnimationFrame(animate);
-      controls.update();
       renderer.render(scene, camera);
     }
     animate();
