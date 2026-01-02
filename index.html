@@ -1,163 +1,135 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Houses of Faith — Temple</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Houses of Faith — Virtual Temple</title>
 
   <style>
-    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
-    #hint{
-      position:fixed; left:0; right:0; bottom:14px;
-      text-align:center; color:#fff; opacity:.75;
-      font-family: Georgia, serif; font-size:14px; pointer-events:none;
-      z-index:10;
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
     }
-    #err{
-      position:fixed; top:10px; left:10px; right:10px;
-      color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
-      white-space:pre-wrap; background:rgba(0,0,0,.55);
-      padding:10px; border-radius:8px; display:none; z-index:20;
+    #hint {
+      position: fixed;
+      bottom: 12px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #ccc;
+      font-family: Georgia, serif;
+      font-size: 14px;
+      opacity: 0.7;
+      pointer-events: none;
     }
   </style>
 </head>
 
 <body>
   <div id="hint">Drag to look • Scroll / pinch to zoom</div>
-  <div id="err"></div>
 
   <script type="module">
-    // -------- Error box (για iPad) --------
-    const errBox = document.getElementById('err');
-    window.addEventListener('error', (e) => {
-      errBox.style.display = 'block';
-      errBox.textContent = 'JS error:\\n' + (e.message || e.error || e);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      errBox.style.display = 'block';
-      errBox.textContent = 'Promise error:\\n' + (e.reason?.message || e.reason || e);
-    });
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
-    // -------- Imports (OrbitControls σωστά) --------
-    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-
-    // -------- Scene / Camera / Renderer --------
+    // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.Fog(0x000000, 15, 120);
 
+    // Camera
     const camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      400
+      200
     );
-    camera.position.set(0, 14, 34);
+    camera.position.set(0, 10, 22);
 
+    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
+    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.target.set(0, 8, 0);
-    controls.minDistance = 10;
-    controls.maxDistance = 120;
-    controls.maxPolarAngle = Math.PI * 0.49; // να μη γυρνάει κάτω από το πάτωμα
+    controls.target.set(0, 5, 0);
+    controls.maxPolarAngle = Math.PI * 0.48;
 
-    // -------- Lights --------
-    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-    const key = new THREE.DirectionalLight(0xffffff, 1.05);
-    key.position.set(10, 24, 12);
-    scene.add(key);
+    const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+    sun.position.set(10, 20, 10);
+    scene.add(sun);
 
-    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-    fill.position.set(-12, 10, -8);
-    scene.add(fill);
+    // Materials
+    const stone = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.9 });
+    const darkStone = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.95 });
 
-    const rim = new THREE.PointLight(0xffffff, 0.25, 200);
-    rim.position.set(0, 20, -40);
-    scene.add(rim);
-
-    // -------- Materials --------
-    const stone = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.9, metalness: 0.0 });
-    const darkStone = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.95, metalness: 0.0 });
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0, metalness: 0.0 });
-
-    // -------- Floor --------
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(32, 1, 32), floorMat);
+    // Floor
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(26, 1, 26),
+      darkStone
+    );
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // (βοηθητικό για να βλέπεις ότι “υπάρχει χώρος” - μπορείς να το σβήσεις μετά)
-    const grid = new THREE.GridHelper(60, 30, 0x333333, 0x222222);
-    grid.position.y = 0.01;
-    scene.add(grid);
+    // Walls
+    const W = 26, D = 26, H = 10, T = 1;
 
-    // -------- Room / Temple dimensions --------
-    const W = 26;      // πλάτος (x)
-    const D = 26;      // βάθος (z)
-    const H = 12;      // ύψος τοίχων (y)
-    const T = 1.2;     // πάχος τοίχων
-
-    // Back wall
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
-    backWall.position.set(0, H/2, -D/2);
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(W, H, T),
+      stone
+    );
+    backWall.position.set(0, H / 2, -D / 2);
     scene.add(backWall);
 
-    // Left wall
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stone);
-    leftWall.position.set(-W/2, H/2, 0);
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(T, H, D),
+      stone
+    );
+    leftWall.position.set(-W / 2, H / 2, 0);
     scene.add(leftWall);
 
-    // Right wall
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stone);
-    rightWall.position.set(W/2, H/2, 0);
+    const rightWall = new THREE.Mesh(
+      new THREE.BoxGeometry(T, H, D),
+      stone
+    );
+    rightWall.position.set(W / 2, H / 2, 0);
     scene.add(rightWall);
 
-    // Front wall (κλειστός – χωρίς άνοιγμα)
-    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
-    frontWall.position.set(0, H/2, D/2);
-    scene.add(frontWall);
-
     // Roof
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 1, D), darkStone);
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(W, 1, D),
+      darkStone
+    );
     roof.position.set(0, H + 0.5, 0);
     scene.add(roof);
 
-    // -------- Columns (2 σειρές x 4 κολώνες) --------
-    const colGeo = new THREE.CylinderGeometry(0.75, 0.85, 10, 28);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.9 });
-
-    const colY = 5; // αφού ύψος κολόνας 10
-    const xPositions = [-8.5, -3, 3, 8.5];
-    const zPositions = [-7, 7];
-
-    for (const z of zPositions) {
-      for (const x of xPositions) {
-        const col = new THREE.Mesh(colGeo, colMat);
-        col.position.set(x, colY, z);
+    // Columns
+    const colGeo = new THREE.CylinderGeometry(0.6, 0.6, H, 24);
+    for (const z of [-7, 7]) {
+      for (const x of [-8, -3, 3, 8]) {
+        const col = new THREE.Mesh(colGeo, stone);
+        col.position.set(x, H / 2, z);
         scene.add(col);
       }
     }
 
-    // -------- Steps (μικρή βάση/σκαλοπάτι) --------
-    const step1 = new THREE.Mesh(new THREE.BoxGeometry(28, 0.6, 28), new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 1 }));
-    step1.position.y = -1.1;
-    scene.add(step1);
-
-    // -------- Resize --------
-    window.addEventListener('resize', () => {
+    // Resize
+    window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // -------- Animate --------
+    // Animate
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
