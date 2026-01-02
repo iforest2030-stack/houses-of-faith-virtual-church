@@ -1,136 +1,160 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Houses of Faith — Virtual Temple</title>
-
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
+    #hint{
+      position:fixed; left:0; right:0; bottom:14px;
+      text-align:center; color:#fff; opacity:.75;
+      font-family: Georgia, serif; font-size:14px; pointer-events:none;
+      z-index:10;
     }
-    #hint {
-      position: fixed;
-      bottom: 12px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      color: #ccc;
-      font-family: Georgia, serif;
-      font-size: 14px;
-      opacity: 0.7;
-      pointer-events: none;
+    #err{
+      position:fixed; top:10px; left:10px; right:10px;
+      color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
+      white-space:pre-wrap; background:rgba(0,0,0,.45);
+      padding:10px; border-radius:8px; display:none; z-index:20;
     }
   </style>
 </head>
-
 <body>
   <div id="hint">Drag to look • Scroll / pinch to zoom</div>
+  <div id="err"></div>
 
   <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+    // ----- Error box (για iPad) -----
+    const errBox = document.getElementById('err');
+    const showErr = (msg) => { errBox.style.display = 'block'; errBox.textContent = msg; };
+    window.addEventListener('error', (e) => showErr('JS error:\n' + (e.message || e.error || e)));
+    window.addEventListener('unhandledrejection', (e) => showErr('Promise error:\n' + (e.reason?.message || e.reason || e)));
 
-    // Scene
+    // ----- Import Three + OrbitControls (ΣΩΣΤΟ) -----
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    // ----- Scene -----
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.Fog(0x000000, 20, 120);
 
-    // Camera
+    // ----- Camera -----
     const camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      200
+      400
     );
-    camera.position.set(0, 10, 22);
+    // Πάνω και λίγο μπροστά, για να ΜΗΝ "είσαι μέσα" σε τοίχο
+    camera.position.set(0, 14, 32);
 
-    // Renderer
+    // ----- Renderer -----
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // Controls
+    // ----- Controls -----
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 5, 0);
-    controls.maxPolarAngle = Math.PI * 0.48;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 7, 0);
+    controls.minDistance = 8;
+    controls.maxDistance = 120;
+    controls.maxPolarAngle = Math.PI * 0.49; // να μην πάει κάτω από πάτωμα
 
-    // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    // ----- Lights (πιο δυνατά για να μην είναι μαύρο) -----
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-    const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-    sun.position.set(10, 20, 10);
-    scene.add(sun);
+    const key = new THREE.DirectionalLight(0xffffff, 1.0);
+    key.position.set(20, 40, 20);
+    scene.add(key);
 
-    // Materials
-    const stone = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.9 });
-    const darkStone = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.95 });
+    const fill = new THREE.DirectionalLight(0xffffff, 0.45);
+    fill.position.set(-20, 20, -10);
+    scene.add(fill);
 
-    // Floor
+    const rim = new THREE.PointLight(0xffffff, 0.35, 300);
+    rim.position.set(0, 25, -40);
+    scene.add(rim);
+
+    // ----- Materials -----
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.9, metalness: 0.0 });
+    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x5f5f5f, roughness: 0.95, metalness: 0.0 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0, metalness: 0.0 });
+
+    // ----- FLOOR -----
     const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(26, 1, 26),
-      darkStone
+      new THREE.BoxGeometry(40, 1, 40),
+      floorMat
     );
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // Walls
-    const W = 26, D = 26, H = 10, T = 1;
+    // ----- TEMPLE ROOM (Walls + Roof) -----
+    const W = 26;   // πλάτος (x)
+    const D = 26;   // βάθος (z)
+    const H = 12;   // ύψος (y)
+    const T = 1.2;  // πάχος τοίχων
 
-    const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(W, H, T),
-      stone
-    );
-    backWall.position.set(0, H / 2, -D / 2);
+    // Back wall
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stoneMat);
+    backWall.position.set(0, H/2, -D/2);
     scene.add(backWall);
 
-    const leftWall = new THREE.Mesh(
-      new THREE.BoxGeometry(T, H, D),
-      stone
-    );
-    leftWall.position.set(-W / 2, H / 2, 0);
+    // Left wall
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stoneMat);
+    leftWall.position.set(-W/2, H/2, 0);
     scene.add(leftWall);
 
-    const rightWall = new THREE.Mesh(
-      new THREE.BoxGeometry(T, H, D),
-      stone
-    );
-    rightWall.position.set(W / 2, H / 2, 0);
+    // Right wall
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stoneMat);
+    rightWall.position.set(W/2, H/2, 0);
     scene.add(rightWall);
 
+    // Front wall (κλειστός – χωρίς άνοιγμα)
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stoneMat);
+    frontWall.position.set(0, H/2, D/2);
+    scene.add(frontWall);
+
     // Roof
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(W, 1, D),
-      darkStone
-    );
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 1, D), darkStoneMat);
     roof.position.set(0, H + 0.5, 0);
     scene.add(roof);
 
-    // Columns
-    const colGeo = new THREE.CylinderGeometry(0.6, 0.6, H, 24);
-    for (const z of [-7, 7]) {
-      for (const x of [-8, -3, 3, 8]) {
-        const col = new THREE.Mesh(colGeo, stone);
-        col.position.set(x, H / 2, z);
+    // ----- COLUMNS (8 κολόνες: 2 σειρές x 4) -----
+    const colGeo = new THREE.CylinderGeometry(0.75, 0.85, 10, 28);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.85 });
+
+    const colY = 5; // γιατί ύψος 10
+    const xPositions = [-8.5, -3.0, 3.0, 8.5];
+    const zPositions = [-7.0, 7.0];
+
+    for (const z of zPositions) {
+      for (const x of xPositions) {
+        const col = new THREE.Mesh(colGeo, colMat);
+        col.position.set(x, colY, z);
         scene.add(col);
       }
     }
 
-    // Resize
-    window.addEventListener("resize", () => {
+    // ----- Small steps (προαιρετικό) -----
+    const step1 = new THREE.Mesh(new THREE.BoxGeometry(30, 0.6, 30), new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 1 }));
+    step1.position.y = -1.1;
+    scene.add(step1);
+
+    // ----- Resize -----
+    window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Animate
-    function animate() {
+    // ----- Animate -----
+    function animate(){
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
