@@ -9,15 +9,15 @@
     #hint{
       position:fixed; left:0; right:0; bottom:14px;
       text-align:center; color:#fff; opacity:.75;
-      font-family: Georgia, serif; font-size:14px; pointer-events:none;
-      z-index:10;
+      font-family: Georgia, serif; font-size:14px;
+      pointer-events:none; z-index:10;
     }
     #err{
       position:fixed; top:10px; left:10px; right:10px;
-      color:#ffb3b3; font:12px ui-monospace, Menlo, monospace;
-      white-space:pre-wrap; background:rgba(0,0,0,.45);
-      padding:10px; border-radius:8px; display:none;
-      z-index:20;
+      color:#ffb3b3; font-family: ui-monospace, Menlo, monospace;
+      font-size:12px; white-space:pre-wrap;
+      background:rgba(0,0,0,.45); padding:10px; border-radius:8px;
+      display:none; z-index:20;
     }
   </style>
 </head>
@@ -38,7 +38,7 @@
       errBox.textContent = 'Promise error:\\n' + (e.reason?.message || e.reason || e);
     });
 
-    // ---- Three.js as module (fixes OrbitControls undefined) ----
+    // ---- Imports (this fixes OrbitControls undefined) ----
     import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
     import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
@@ -68,7 +68,7 @@
     controls.target.set(0, 5, 0);
     controls.minDistance = 10;
     controls.maxDistance = 70;
-    controls.maxPolarAngle = Math.PI * 0.49; // να μην πάει κάτω από το πάτωμα
+    controls.maxPolarAngle = Math.PI * 0.49; // να μη μπαίνει κάτω από το πάτωμα
 
     // ---- Lights ----
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
@@ -86,38 +86,29 @@
     scene.add(rim);
 
     // ---- Materials ----
-    const stone = new THREE.MeshStandardMaterial({ color: 0xb9b9b9, roughness: 0.9, metalness: 0.0 });
-    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6f6f6f, roughness: 0.95, metalness: 0.0 });
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0, metalness: 0.0 });
+    const stone     = new THREE.MeshStandardMaterial({ color: 0xb9b9b9, roughness: 0.9,  metalness: 0.0 });
+    const darkStone = new THREE.MeshStandardMaterial({ color: 0x6b6f6f, roughness: 0.95, metalness: 0.0 });
+    const floorMat  = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1.0,  metalness: 0.0 });
 
     // ---- FLOOR ----
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(26, 1, 26),
-      floorMat
-    );
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(26, 1, 26), floorMat);
     floor.position.y = -0.5;
     scene.add(floor);
 
-    // ---- ROOM (WALLS + ROOF) ----
-    // Διαστάσεις “ναού”
-    const W = 26;      // πλάτος (x)
-    const D = 26;      // βάθος (z)
-    const H = 12;      // ύψος τοίχων (y)
-    const T = 1.2;     // πάχος τοίχων
+    // ---- ROOM (walls + roof) ----
+    // Διαστάσεις "ναού"
+    const W = 26;   // πλάτος (x)
+    const D = 26;   // βάθος (z)
+    const H = 12;   // ύψος τοίχων (y)
+    const T = 1.2;  // πάχος τοίχων
 
     // Back wall
-    const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(W, H, T),
-      stone
-    );
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
     backWall.position.set(0, H/2, -D/2);
     scene.add(backWall);
 
     // Left wall
-    const leftWall = new THREE.Mesh(
-      new THREE.BoxGeometry(T, H, D),
-      stone
-    );
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(T, H, D), stone);
     leftWall.position.set(-W/2, H/2, 0);
     scene.add(leftWall);
 
@@ -126,28 +117,21 @@
     rightWall.position.set(W/2, H/2, 0);
     scene.add(rightWall);
 
-    // Front wall (κλειστός — χωρίς άνοιγμα)
-    const frontWall = new THREE.Mesh(
-      new THREE.BoxGeometry(W, H, T),
-      stone
-    );
+    // Front wall (κλειστός — χωρίς άνοιγμα για να δεις ότι δουλεύει)
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), stone);
     frontWall.position.set(0, H/2, D/2);
     scene.add(frontWall);
 
-    // Roof (οροφή)
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(W, 1, D),
-      darkStone
-    );
+    // Roof
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 1, D), darkStone);
     roof.position.set(0, H + 0.5, 0);
     scene.add(roof);
 
-    // ---- COLUMNS (κολόνες) ----
-    // 8 κολόνες (2 σειρές x 4) μέσα στον ναό
+    // ---- COLUMNS (8 κολώνες: 2 σειρές x 4) ----
     const colGeo = new THREE.CylinderGeometry(0.75, 0.85, 10, 28);
     const colMat = new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.9 });
 
-    const colY = 5; // επειδή ύψος κολόνας 10
+    const colY = 5; // επειδή ύψος κολόνας 10 => κέντρο στο 5
     const xPositions = [-8.5, -3, 3, 8.5];
     const zPositions = [-7, 7];
 
@@ -159,7 +143,7 @@
       }
     }
 
-    // ---- Small steps (προαιρετικά σκαλοπάτι/βάση) ----
+    // ---- Small step (προαιρετικό σκαλοπάτι/βάση) ----
     const step1 = new THREE.Mesh(new THREE.BoxGeometry(28, 0.6, 28), new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 1 }));
     step1.position.y = -1.1;
     scene.add(step1);
